@@ -17,6 +17,7 @@ object EbozApp extends App {
 
     def receive = {
       case msg: String => logger.info(msg)
+      case _ => throw new IllegalArgumentException
     }
   }
 
