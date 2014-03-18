@@ -15,16 +15,18 @@ object EbozApp extends App {
 
   case class IcaoFlightPlan(text: String)
 
+  case class FlightPlan(msgType: String)
+
   class MessageReceiver extends Actor {
 
-    val logger = Logging(context.system, this)
-
     val formatRecognizer = context.actorOf(Props[FormatRecognizer], "formatRecognizer")
+    val adexpPareser = context.actorOf(Props[AdxpPareser], "adexpParser")
+    val icaoPareser = context.actorOf(Props[IcaoPareser], "icaoParser")
 
     def receive = {
       case msg: String => formatRecognizer ! msg
-      case msg: AdxpMessage => logger.info(msg.toString)
-      case msg: IcaoFlightPlan => logger.info(msg.toString)
+      case msg: AdxpMessage => adexpPareser ! msg
+      case msg: IcaoFlightPlan => icaoPareser ! msg
       case _ => throw new IllegalArgumentException
     }
   }
@@ -44,6 +46,37 @@ object EbozApp extends App {
 
   class UnknowFormatException extends Exception
 
+  abstract class FplPareser[T] extends Actor {
+
+    val fplProcess = context.actorOf(Props[FplProcess])
+
+    protected def parse(message: T): FlightPlan
+
+    def receive = {
+      case message: T => fplProcess ! parse(message)
+    }
+  }
+
+  class AdxpPareser extends FplPareser[AdxpMessage] {
+    protected def parse(message: AdxpMessage): FlightPlan = {
+      FlightPlan("ADXP")
+    }
+  }
+
+  class IcaoPareser extends FplPareser[IcaoFlightPlan] {
+    protected def parse(message: IcaoFlightPlan): FlightPlan = {
+      FlightPlan("ICAO")
+    }
+  }
+
+  class FplProcess extends Actor {
+
+    val logger = Logging(context.system, this)
+
+    def receive = {
+      case fpl => logger.info(fpl.toString)
+    }
+  }
   val eBOZ = ActorSystem("eBOZ")
 
   val msgReceiver = eBOZ.actorOf(Props[MessageReceiver], "msgReceiver")
