@@ -1,0 +1,15 @@
+# SBT #
+#########
+project
+target
+
+# Eclipse #
+###########
+.classpath
+.project
+.settings
+*/bin
+
+# Akka #
+########
+.cache
