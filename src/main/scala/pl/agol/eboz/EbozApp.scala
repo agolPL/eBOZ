@@ -11,15 +11,38 @@ import akka.event.Logging
  */
 object EbozApp extends App {
 
+  case class AdxpMessage(text: String)
+
+  case class IcaoFlightPlan(text: String)
+
   class MessageReceiver extends Actor {
 
     val logger = Logging(context.system, this)
 
+    val formatRecognizer = context.actorOf(Props[FormatRecognizer], "formatRecognizer")
+
     def receive = {
-      case msg: String => logger.info(msg)
+      case msg: String => formatRecognizer ! msg
+      case msg: AdxpMessage => logger.info(msg.toString)
+      case msg: IcaoFlightPlan => logger.info(msg.toString)
       case _ => throw new IllegalArgumentException
     }
   }
+
+  class FormatRecognizer extends Actor {
+
+    def receive = {
+      case msg: String => sender ! resolve(msg)
+    }
+
+    private def resolve(msg: String) = msg match {
+      case msg if msg.startsWith("-TITLE IFPL") => AdxpMessage(msg)
+      case msg if msg.startsWith("(FPL") => IcaoFlightPlan(msg)
+      case _ => throw new UnknowFormatException
+    }
+  }
+
+  class UnknowFormatException extends Exception
 
   val eBOZ = ActorSystem("eBOZ")
 
