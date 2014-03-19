@@ -5,6 +5,7 @@ import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.actor.actorRef2Scala
 import akka.event.Logging
+import scala.reflect.ClassTag
 
 /**
  * @author Andrzej Goławski
@@ -46,7 +47,7 @@ object EbozApp extends App {
 
   class UnknowFormatException extends Exception
 
-  abstract class FplPareser[T] extends Actor {
+  abstract class FplPareser[T : ClassTag] extends Actor {
 
     val fplProcess = context.actorOf(Props[FplProcess])
 
